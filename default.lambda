@@ -1,0 +1,25 @@
+# I have changed the underscore notation to camel case.
+
+# Identity function.
+def identity = λx.x
+
+# Self-application function.
+def selfApply = λs.(s s)
+
+# Function application function.
+def apply = λfunc.λarg.(func arg)
+
+# Using apply to define identity.
+def indentity2 = λx.((apply identity) x)
+
+# Using apply to define selfApply.
+def selfApply2 = λs.((apply s) s)
+
+# Select the first of two arguments.
+def selectFirst = λfirst.λsecond.first
+
+# Select the second of two arguments.
+def selectSecond = λfirst.λsecond.second
+
+# Make a pair.
+def makePair = λfirst.λsecond.λfunc((func first) second)
