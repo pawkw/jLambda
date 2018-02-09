@@ -33,33 +33,88 @@ class LambdaInterpreter {
         Pattern labelPattern = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]*");
         String result = new String();
         String label = new String();
+        String function = new String();
         int cursor = 0;
 
         // See if it is a definition.
-        if(line.substring(0, 3).equals("def ")) {
-            cursor += 4;
+        cursor = skipWhite(line, cursor);
+        if(line.substring(cursor).startsWith("def")) {
+            cursor = consume("def", line, cursor);
+            cursor = skipWhite(line, cursor);
             // Get the label.
-            Matcher labelMatcher = labelPattern.matcher(line);
+            Matcher labelMatcher = labelPattern.matcher(line.substring(cursor));
             if(labelMatcher.find()) {
                 label = labelMatcher.group();
+                cursor += label.length();
             } else {
                 // There is an error.
                 return "Error - unable to parse label in definition.\n"+line;
             }
             // Consume the '='.
-            // Get the function definition.
+            cursor = skipWhite(line, cursor);
+            cursor = consume("=", line, cursor);
 
+            // Get the function definition.
+            cursor = skipWhite(line, cursor);
+            function = line.substring(cursor);
+
+            this.definitions.add(new LambdaDefinition(label, function));
+            result = function;
+
+        } else if(line.substring(cursor).startsWith("exit")) {
+            return "Exiting.";
+        } else if(line.substring(cursor).startsWith("list")) {
+            int count = 0;
+            for(LambdaDefinition x : definitions) {
+                System.out.println(x);
+                count++;
+            }
+            result = count+" definitions.";
+        } else if(line.substring(cursor).startsWith("(")) {
+            // Apply a function.
+            cursor = consume("(", line, cursor);
+            cursor = skipWhite(line, cursor);
+            result = expression(line, cursor);
+            // consume result.
         }
         //
         return result;
+    }
+
+    private String expression(String line, int cursor) {
+        String result = new String();
+
+        return line;
+    }
+
+    private int consume(String item, String line, int cursor) {
+        if(!line.substring(cursor).startsWith(item)) {
+            System.out.println("Error - expected "+item+" in line "+line+".");
+            return cursor;
+        }
+
+        return cursor + item.length();
+    }
+
+    private int skipWhite(String line, int cursor) {
+        while(line.charAt(cursor) == ' ' || line.charAt(cursor) == '\t')
+            cursor++;
+        return cursor;
     }
 }
 
 class LambdaDefinition implements Comparable<LambdaDefinition> {
     String label;
+    String body;
 
     LambdaDefinition() {
         this.label = new String();
+        this.body = new String();
+    }
+
+    LambdaDefinition(String name, String function) {
+        this.label = name;
+        this.body = function;
     }
 
     // This allows searching a list.
@@ -71,14 +126,14 @@ class LambdaDefinition implements Comparable<LambdaDefinition> {
     // This converts a definition to string directly for the sake of printing, etc.
     @Override
     public String toString() {
-        String result = new String();
+        String result = label+" : "+body.replaceAll("λ", "@");
 
         return result;
     }
 }
 
 
-public class jLambda implements Comparable{
+public class jLambda {
 
     public static void main(String[] args) {
         LambdaInterpreter interpreter = new LambdaInterpreter();
@@ -92,10 +147,11 @@ public class jLambda implements Comparable{
         // Loop.
         while(!result.equals("Exiting.")) {
             // Read.
-            readLine = keyboardInput.nextLine;
+            System.out.print("> ");
+            readLine = keyboardInput.nextLine();
 
             // Evaluate.
-            result = interpreter.evaluate(readLine, definitions);
+            result = interpreter.evaluate(readLine);
 
             // Print.
             System.out.println(result);
@@ -126,7 +182,7 @@ public class jLambda implements Comparable{
          } else {
                 // Load only the alternative file.
                 try {
-                    loadFile(args[0].substring(1), interpreter);
+                    loadFile("default.lambda", interpreter);
                 } catch(Exception ex) {
                     ex.printStackTrace();
                     System.exit(1);
@@ -136,27 +192,28 @@ public class jLambda implements Comparable{
 
 
     public static void loadFile(String fileName, LambdaInterpreter interpreter) throws Exception {
-        try(File diskFile = new File(fileName);) {
-            if(!diskFile.exists()) {
-                System.out.prinlnt("File "+fileName+" was not found and could not be loaded.");
-                return;
-            }
-
-            Scanner fileScanner = new Scanner(diskFile);
-            String currentLine = new String();
-
-            while(fileScanner.hasNextLine()) {
-                // Get a new line from the file.
-                currentLine = fileScanner.nextLine();
-                currentLine.trim(); // Depad.
-
-                // Check to see if it is a comment or blank line.
-                if(currentLine.charAt(0) == '#' || currentLine.isEmpty())
-                    continue;
-
-                // Otherwise, add the definition.
-                interpreter.evaluate(currentLine, definitions);
-            }
+        File diskFile = new File(fileName);
+        if(!diskFile.exists()) {
+            System.out.println("File "+fileName+" was not found and could not be loaded.");
+            return;
         }
+
+        Scanner fileScanner = new Scanner(diskFile);
+        String currentLine = new String();
+
+        while(fileScanner.hasNextLine()) {
+            // Get a new line from the file.
+            currentLine = fileScanner.nextLine();
+            currentLine.trim(); // Depad.
+
+            // Check to see if it is a comment or blank line.
+            if(currentLine.isEmpty() || currentLine.charAt(0) == '#')
+                continue;
+
+            System.out.println("Evaluating: "+currentLine.replaceAll("λ", "@"));
+            // Otherwise, add the definition.
+            interpreter.evaluate(currentLine);
+        }
+
     }
 }

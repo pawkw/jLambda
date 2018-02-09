@@ -22,4 +22,4 @@ def selectFirst = λfirst.λsecond.first
 def selectSecond = λfirst.λsecond.second
 
 # Make a pair.
-def makePair = λfirst.λsecond.λfunc((func first) second)
+def makePair = λfirst.λsecond.λfunc.((func first) second)
